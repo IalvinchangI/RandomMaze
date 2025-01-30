@@ -1,11 +1,12 @@
 import random
 import turtle
+import time
 
 
 def check(x, y, number):
     count = 0
     become = -1
-    if (x <= size - 1 and x >= 0) and (y <= size - 1 and y >= 0):
+    if (x <= xd - 1 and x >= 0) and (y <= yd - 1 and y >= 0):
         if ground[y + 1][x] == number:
             count += 1
         if ground[y][x + 1] == number:
@@ -31,14 +32,11 @@ def check(x, y, number):
             become = ground[y][x - 1]
     return (count, become)
 
-#turn = [go_up + 1, go_right + 1, go_up - 1, go_right - 1]  ###
 def road(x, y, number, ground, position):
-    #print("--------------", number)
-    turn = [0, 1, 2, 3]
+    turn = [0, 1, 2, 3]  #[up, right, down, left]
     ok = (0, -1)
     while ok[0] != 11 and turn != []:
         r = random.choice(turn)   #r=random
-        #print(">", r)
         if r == 0:  #y + 1
             ok = check(x, y + 1, number)
             if ok[0] == 1 or ok[0] == 11:
@@ -75,37 +73,28 @@ def road(x, y, number, ground, position):
                 turn = [0, 1, 2, 3]
             else:
                 turn.remove(r)
-        """
-        print(ok[0])
-        if ok[0] == 11:
-            for i in range(size, -1, -1):
-                print(ground[i])
-        print(position)
-        """
+        
     if ok[0] == 11:  #碰到的數字不同時
-        #print("break_exchange")
         return (1, ok[1])
     else:
-        #print("break")
         return (0, ok[1])
 
 def find(number, position):
     change_ok = (0, -1)
     x = -1
     y = -1
-    while change_ok[0] != 3 and position != []:
+    while change_ok[0] != 3 and position != []:  #####################################
         r_position = random.choice(position)   #r=random
         change_ok = check(r_position[0], r_position[1], number)
         if change_ok[0] == 3:
             x = r_position[0]
             y = r_position[1]
-            #print((x, y))
         position.remove(r_position)
     return (x, y)
 
 def exchange(delete, become, ground):
-    #當不同數字連在一起時，改成相同數字
-    for l in range(size):
+    """當不同數字連在一起時，改成相同數字"""
+    for l in range(len(ground)):
         while delete in ground[l]:
             place = ground[l].index(delete)
             ground[l].remove(delete)
@@ -123,114 +112,115 @@ def block(distance):
     turtle.penup()
     turtle.forward(distance)
 
-def changeline(size, distance):
+def changeline(xd, distance):
     turtle.penup()
     turtle.right(180)
-    turtle.forward(size * distance)
+    turtle.forward(xd * distance)
     turtle.right(90)
     turtle.forward(distance)
     turtle.right(90)
     turtle.pendown()
 
 
-###################
-size = 10  #迷宮大小
-distance = 10  #路的大小
-ending = 10  #出口數
-run = True
-###################
-side = size * distance
+#########################################################
+i = 1
+while True:
+    try:
+        if i == 1:
+            xd = int(input("迷宮長度(x軸)："))   #迷宮大小(x軸)   185
+            if xd <= 0:
+                print("資料值錯誤，請重新輸入")
+                continue
+            i += 1
+        if i == 2:
+            yd = int(input("迷宮寬度(y軸)："))   #迷宮大小(y軸)   95
+            if yd <= 0:
+                print("資料值錯誤，請重新輸入")
+                continue
+            i += 1
+        if i == 3:
+            distance = int(input("路的大小："))  #路的大小   8
+            if distance <= 0:
+                print("資料值錯誤，請重新輸入")
+                continue
+            i += 1
+        if i == 4:
+            ending = int(input("幾個出口："))    #出口數   20
+            i += 1
+        if i == 5:
+            random_pos = bool(eval(input("是否隨機選擇起終點座標 (True、False)：")))  #隨機選擇起終點座標  True
+            del i
+    except ValueError:
+        print("資料型態錯誤，請重新輸入")
+    except NameError:
+        print("輸入錯誤，請重新輸入")
+    else:
+        break
+#########################################################
+x_side = xd * distance
+y_side = yd * distance
 
-#畫路
-turtle.speed(0)
-turtle.hideturtle()
 
+Number = []
+for i in range(1, ending + 2):
+    Number.append(i)
 
-A = [0] * (size + 1)
+A = [0] * (xd + 1)
 ground = []
-for i in range(size + 1):
+for i in range(yd + 1):
     ground.append(A[:])
 
 start = []
+position = []
 
-"""
-#隨機選
-Number = []
-for i in range(1, ending + 2):
-    Number.append(i)
+for number in Number:
+    while True:
+        if random_pos:  #隨機選
+            x = random.randint(0, xd - 1)
+            y = random.randint(0, yd - 1)
+            pos = (x, y)
+            if pos in start:
+                continue
+        else:  #手動選
+            try:
+                x, y = eval(input("%d 號出入口，座標 x, y :" % number))
+                pos = (int(x), int(y))
+            except ValueError:
+                print("資料型態錯誤，請重新輸入")
+                continue
+            if (pos[0] < 0) or (pos[1] < 0) or (pos[0] >= xd) or (pos[1] >= yd):
+                print("座標超出範圍，請重新輸入")
+                continue
+            if pos in start:
+                print("座標重複，請重新輸入")
+                continue
+        
+        position.append([pos])
+        start.append(pos)
+        ground[y][x] = number
+        break
 
-position = [[]] * (ending + 1)
 
-#first
-x_first = random.randint(0, size - 1)
-y_first = random.randint(0, size - 1)
-position[0] = [(x_first, y_first)]
-start.append((x_first, y_first))
-ground[y_first][x_first] = 1
+turtle.tracer(0, 0)
 
-turtle.penup()
-turtle.setposition(-1 * side / 2 + x_first * 10 + 1, -1 * side / 2 + y_first * 10 + 1)
-turtle.color(0, 1, 0)
-block(distance - 2)
-
-
-#final
-for i in range(ending):
-    position[i + 1].append([])
-    x_final = random.randint(0, size - 1)
-    y_final = random.randint(0, size - 1)
-    position[i + 1] = [(x_final, y_final)]
-    ground[y_final][x_final] = i + 2
-    start.append((x_final, y_final))
-    
+#畫出入口
+for i in range(len(start)):
     turtle.penup()
-    turtle.setposition(-1 * side / 2 + x_final * 10 + 1, -1 * side / 2 + y_final * 10 + 1)
-    turtle.color(1, 0, 0)
+    turtle.setposition(-1 * x_side / 2 + start[i][0] * distance + 1, -1 * y_side / 2 + start[i][1] * distance + 1)
+    if i == 0:
+        turtle.color(0, 1, 0)
+    else:
+        turtle.color(1, 0, 0)
     block(distance - 2)
-"""
-#手動選
-ending = int(input("幾個出口（size = 10）："))
-
-Number = []
-for i in range(1, ending + 2):
-    Number.append(i)
-
-position = [[]] * (ending + 1)
-
-#first
-x_first = random.randint(0, size - 1)
-y_first = random.randint(0, size - 1)
-position[0] = [(x_first, y_first)]
-start.append((x_first, y_first))
-ground[y_first][x_first] = 1
-
-turtle.penup()
-turtle.setposition(-1 * side / 2 + x_first * 10 + 1, -1 * side / 2 + y_first * 10 + 1)
-turtle.color(0, 1, 0)
-block(distance - 2)
-
-
-#final
-for i in range(ending):
-    x_final, y_final = eval(input("x, y :"))
-    position[i + 1] = [(x_final, y_final)]
-    ground[y_final][x_final] = i + 2
-    start.append((x_final, y_final))
-    
-    turtle.penup()
-    turtle.setposition(-1 * side / 2 + x_final * 10 + 1, -1 * side / 2 + y_final * 10 + 1)
-    turtle.color(1, 0, 0)
-    block(distance - 2)
-"""#"""
 
 turtle.penup()
 turtle.color(0, 0, 0)
-turtle.setposition(-1 * side / 2, -1 * side / 2)
+turtle.setposition(-1 * x_side / 2, -1 * y_side / 2)
 
-
-while run == True:
+print("繪製出口時間：", time.process_time())
+while True:
     if position[0] == []:
-        print("all_break")
+        print("製作迷宮時間：", time.process_time())
         break
     else:
         change = (0, -1)
@@ -254,39 +244,27 @@ while run == True:
             start[number - 1] = find(number, position[number - 1])
 
 
-'''
-for i in range(random.randint(1, size)):
-    x = random.randint(0, size - 1)
-    y = random.randint(0, size - 1)
-    ground[y][x] = 1
-'''
-"""
-for i in range(size, -1, -1):
-    print(ground[i])
-print(position[0])
-"""
-
-
 #畫路
 #樣式：方的
-for j in range(size):
-    for i in range(size):
-        if ground[j][i] != 1:
+for y in range(yd):
+    for x in range(xd):
+        if ground[y][x] != 1:
             block(distance)
-            ground[j][i] = 0
+            ground[y][x] = 0
         else:
             turtle.forward(distance)
-    changeline(size, distance)
+    changeline(xd, distance)
     turtle.penup()
-    #print(ground[j])
 
 #畫框
 turtle.pendown()
-for i in range(4):
-    turtle.forward(side)
+for i in range(2):
+    turtle.forward(x_side)
     turtle.right(90)
+    turtle.forward(y_side)
+    turtle.right(90)
+turtle.penup()
 
+print("繪製迷宮時間：", time.process_time())
 turtle.done()
-
-
 
