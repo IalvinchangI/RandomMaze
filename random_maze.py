@@ -1,537 +1,769 @@
-# 新增結構、物件導向
+# 新增GUI顯示、照片儲存
 import random
 import copy
-import turtle
+import tkinter as tk
 import time
+from random_create_maze import maze, create_list2, create_in_out
 
 
-class maze():
-    def __init__(self, ground = [[0]], start = []):
-        # 只是存ground用的
-        self.xd = len(ground[0])
-        self.yd = len(ground)
-        self.ground = ground
-        self.start = start  # 第1個是入口，其他都是出口
-        self.auto_setting()
-    
-    def auto_setting(self):
-        # 增加外框 (為get_cross_pos準備)
-        for A in self.ground:
-            A.append(0)
-        self.ground.append([0] * (self.xd + 1))
-        # 設定好隨機路徑相關變數
-        self.position = {self.ground[i[1]][i[0]]:[i] for i in self.start}
-        self.Number = sorted(list(self.position))
-        self.max_number = self.Number[-1] if self.Number else 0
-
-    '''
-    def add_struct(self, x, y, number, struct):
-        """
-        可加，就加struct
-        不可加，就加(x, y)
-        """
-        # struct === obj
-        ok = self.__check_struct(x, y, number, struct)
-        if ok[0]:
-            print(True)
-            for number_s_n, become_list in enumerate(ok[3]):
-                number_s = struct.Number[number_s_n]
-                if len(become_list) > 1:  # 有碰到很多東西
-                    if 1 in become_list:
-                        number = 1
-                    else:
-                        number = become_list[0]  # become的第1個是"要變成的"
-                    for i in range(1, len(become_list)):
-                        self.__exchange(become_list[i], number)
-                elif len(become_list) == 1:  # 有碰到1個東西
-                    number = become_list[0]
-                else:  # 沒有碰到東西
-                    self.max_number += 1
-                    number = self.max_number
-                    self.Number.append(number)
-                    self.position[number] = []
-                for (sx, sy), (gx, gy) in zip(ok[1][number_s], ok[2][number_s_n]):  # 把struct印到ground上
-                    if struct.ground[sy][sx] == number_s:
-                        self.ground[gy][gx] = number
-                        self.position[number].append((gx, gy))
-        else:
-            print(False)
-            self.ground[y][x] = number
-            self.position[number].append((x, y))
-    
-    def __check_struct(self, x, y, number, struct):
-        # struct === obj
-        S = copy.deepcopy(struct.ground)
-        save_s = copy.deepcopy(struct.position)
-        save_g = [[(x + struct.start[i][0] - struct.start[0][0], y + struct.start[i][1] - struct.start[0][1])] for i in range(len(struct.Number))]  # <<< enumerate(self.Number)
-        # save_self_pos = [[(x + pos[0] - struct.start[0][0], y + pos[1] - struct.start[0][1]) for pos in struct.position[i]] for i in struct.Number]
-        # follow_numbers = []
-        become = []  # become的第1個是"要變成的"
-        for i in range(len(struct.Number)):
-            become.append([])
-        try:
-            for number_s_n, number_s in enumerate(struct.Number):  # change
-                i = 0
-                while len(save_s[number_s]) > i:
-                    print(i)
-                    sx, sy = save_s[number_s][i]
-                    gx, gy = save_g[number_s_n][i]
-                    for x_, y_ in self.get_cross_pos(0, 0):
-                        # struct內
-                        if (sx + x_ < struct.xd and sx + x_ >= 0) and (sy + y_ < struct.yd and sy + y_ >= 0):
-                            if S[sy + y_][sx + x_] == 0 or S[sy + y_][sx + x_] != number_s:  #為0或不為nomber_s就不用檢查ground合不合了
-                                continue
-                        elif (sx + x_ > struct.xd and sx + x_ < -1) and (sy + y_ > struct.yd and sy + y_ < -1):
-                            continue
-                        # ground內
-                        gx_, gy_ = gx + x_, gy + y_
-                        if (gx_ >= self.xd and gx_ < 0) and (gy_ >= self.yd and gy_ < 0):
-                            raise Exception("can't add struct")
-                        if self.ground[gy_][gx_] in become[number_s_n - 1]:
-                            raise Exception("can't add struct")
-                        if (self.ground[gy_][gx_] not in become[number_s_n - 1]) and (self.ground[gy_][gx_] != 0):
-                            # if follow_numbers:  # 碰過東西了  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                            become[number_s - 1].append(self.ground[gy_][gx_])
-                            # follow_numbers.append(self.ground[gy_][gx_])
-                        save_s[number_s].append((sx + x_, sy + y_))
-                        save_g[number_s_n].append((gx_, gy_))
-                        S[sy + y_][sx + x_] = 0
-                    i += 1
-                # follow_numbers = []
-        except:
-            return (False, None, None, None)
-        else:
-            del save_s[struct.Number[0]][0]
-            del save_g[0][0]
-            return (True, save_s, save_g, become)
-    '''
-
-    def add_struct(self, x, y, struct, make_x_y_TF = False):
-        """ (x, y) 不能有 number """
-        ok = self.__check_struct(x, y, struct)
-        # ok[1] = become_s_to_g,  ok[2] = S_range,  ok[3] = save_struct_pos
-        if ok[0]:  # 放置結構
-            # self exchange
-            for become_key in ok[1]:
-                become_list = ok[1][become_key]
-                if not become_list:  # new_number
-                    self.max_number += 1
-                    self.position[self.max_number] = []
-                    self.Number.append(self.max_number)
-                    become_list.append(self.max_number)
-                elif 1 in become_list:
-                    become_list.remove(1)
-                    for become in become_list:
-                        self.__exchange(become, 1)
-                    become_list.insert(0, 1)
-                else:
-                    for delete in become_list[1:]:
-                        self.__exchange(delete, become_list[0])
-            # struct 印到 self 上
-            for sy in range(struct.yd):
-                gy = y + sy - struct.start[0][1]
-                for sx in range(struct.xd):
-                    gx = x + sx - struct.start[0][0]
-                    if ok[2][sy][sx] == 2:
-                        if struct.ground[sy][sx] > 0:
-                            self.ground[gy][gx] = ok[1][struct.ground[sy][sx]][0]
-                        else:
-                            self.ground[gy][gx] = 0
-                    if struct.ground[sy][sx] == -1:
-                        self.ground[gy][gx] = -1
-            # 新增 position
-            for frame_key in ok[3]:
-                position = []
-                for sx, sy in ok[3][frame_key]:
-                    position.append((x + sx - struct.start[0][0], y + sy - struct.start[0][1]))
-                self.position[ok[1][frame_key][0]] += position
-        else:  # 放置點
-            if make_x_y_TF:
-                become = 0
-                for cross_pos_x, cross_pos_y in self.get_cross_pos(x, y):
-                    if self.ground[cross_pos_y][cross_pos_x] > 0:
-                        if not become:
-                            become = self.ground[cross_pos_y][cross_pos_x]
-                        else:
-                            break
-                else:
-                    if become:
-                        self.ground[y][x] = become
-                        self.position[become].append((x, y))
-                    else:
-                        self.max_number += 1
-                        self.Number.append(self.max_number)
-                        self.ground[y][x] = self.max_number
-                        self.position[self.max_number] = [(x, y)]
-
-    def __check_struct(self, x, y, struct):
-        def save_pos(pos):  # save struct 的 number 和 pos
-            if pos:
-                if S[pos[1]][pos[0]] in save_struct_pos:
-                    save_struct_pos[S[pos[1]][pos[0]]].append(pos)
-                else:
-                    save_struct_pos[S[pos[1]][pos[0]]] = [pos]
-        # 檢查是否超出self的範圍
-        if (x - struct.start[0][0] < 0 or x + (struct.xd - 1) - struct.start[0][0] >= self.xd) or \
-           (y - struct.start[0][1] < 0 or y + (struct.yd - 1) - struct.start[0][1] >= self.yd):
-            return (False,)
-        S = struct.ground
-        G = self.ground
-        # 找出邊框、檢查struct是否和self重和
-        save_struct_pos = dict()  # key存struct的number，value存struct的pos
-        first_x = [None] * struct.yd  # 最左
-        last_x = [None] * struct.yd  # 最右
-        first_y = [None] * struct.xd  # 最上
-        last_y = [None] * struct.xd  # 最下
-        for sy in range(struct.yd):
-            for sx in range(struct.xd):
-                # 找出邊框
-                if S[sy][sx] > 0:
-                    if not first_x[sy]: first_x[sy] = (sx, sy)
-                    if not first_y[sx]: first_y[sx] = (sx, sy)
-                    last_x[sy] = (sx, sy)
-                    last_y[sx] = (sx, sy)
-            save_pos(first_x[sy])
-            save_pos(last_x[sy])
-        tuple(map(save_pos, first_y))
-        tuple(map(save_pos, last_y))
-        # 標明struct範圍 (first_x, last_x, first_y, last_y)
-        S_range = []
-        for sy in range(struct.yd):
-            gy = y + sy - struct.start[0][1]
-            S_range.append([0] * struct.xd)
-            for sx in range(struct.xd):
-                gx = x + sx - struct.start[0][0]
-                if first_x[sy]:
-                    if first_x[sy][0] <= sx and last_x[sy][0] >= sx:
-                        S_range[sy][sx] += 1
-                if first_y[sx]:
-                    if first_y[sx][1] <= sy and last_y[sx][1] >= sy:
-                        S_range[sy][sx] += 1
-                # struct是否和self重和
-                if S_range[sy][sx] == 2 and G[gy][gx] != 0:
-                    return (False,)
-            S_range[sy].append(0)
-        S_range.append([0] * struct.xd)
-        # 確認外部沒有多連
-        become_s_to_g = dict()  # 用key、value來處理struct對self的number變化
-        for number_Pos in save_struct_pos.items():
-            become = []
-            for sx, sy in number_Pos[1]:
-                for cross_pos_x, cross_pos_y in self.get_cross_pos(sx, sy):
-                    if S_range[cross_pos_y][cross_pos_x] == 2:
-                        continue
-                    gn = G[y + cross_pos_y - struct.start[0][1]][x + cross_pos_x - struct.start[0][0]]
-                    if gn not in become:
-                        if gn != 0:
-                            become.append(gn)
-                    else:
-                        return (False,)
-            become_s_to_g[number_Pos[0]] = become  # become的第1個是"要變成的"
-        return (True, become_s_to_g, S_range, save_struct_pos)
-
-    def get_cross_pos(self, x, y, center_TF = False):
-        # 上右下左(中)的資料
-        #'''
-        if center_TF:
-            return ((x, y + 1), (x + 1, y), (x, y - 1), (x - 1, y), (x, y))
-        else:
-            return ((x, y + 1), (x + 1, y), (x, y - 1), (x - 1, y))
-        '''
-        yield (x, y + 1)
-        yield (x + 1, y)
-        yield (x, y - 1)
-        yield (x - 1, y)
-        if check_exchage_TF == False:
-            yield (x, y)
-        #'''
-
-    def __check(self, x, y, number):
-        count = 0
-        become = -1
-        if (x < self.xd and x >= 0) and (y < self.yd and y >= 0) and self.ground[y][x] >= 0:
-            #檢查是否為-1
-            #檢查是否碰到同number
-            for x_, y_ in self.get_cross_pos(x, y, True):
-                if self.ground[y_][x_] == number:
-                    count += 1
-            #檢查是否需要exchange
-            for x_, y_ in self.get_cross_pos(x, y):
-                if self.ground[y_][x_] != number and self.ground[y_][x_] > 0:
-                    count += 10
-                    become = self.ground[y_][x_]
-                    break
-        return (count, become)
-
-    def __road(self, x, y, number):
-        # 走路
-        position = self.position[number]
-        turn = [0, 1, 2, 3]  #[up, right, down, left]
-        ok = (0, -1)
-        while ok[0] != 11 and turn != []:
-            r = random.choice(turn)   #r=random
-            if r == 0:  #y + 1
-                ok = self.__check(x, y + 1, number)
-                if ok[0] == 1 or ok[0] == 11:
-                    y += 1
-                    self.ground[y][x] = number
-                    position.append((x, y))
-                    turn = [0, 1, 2, 3]
-                else:
-                    turn.remove(r)
-            elif r == 1:  #x + 1
-                ok = self.__check(x + 1, y, number)
-                if ok[0] == 1 or ok[0] == 11:
-                    x += 1
-                    self.ground[y][x] = number
-                    position.append((x, y))
-                    turn = [0, 1, 2, 3]
-                else:
-                    turn.remove(r)
-            elif r == 2:  #y - 1
-                ok = self.__check(x, y - 1, number)
-                if ok[0] == 1 or ok[0] == 11:
-                    y -= 1
-                    self.ground[y][x] = number
-                    position.append((x, y))
-                    turn = [0, 1, 2, 3]
-                else:
-                    turn.remove(r)
-            elif r == 3:  #x - 1
-                ok = self.__check(x - 1, y, number)
-                if ok[0] == 1 or ok[0] == 11:
-                    x -= 1
-                    self.ground[y][x] = number
-                    position.append((x, y))
-                    turn = [0, 1, 2, 3]
-                else:
-                    turn.remove(r)
-            
-        if ok[0] == 11:  #碰到的數字不同時
-            return (1, ok[1])
-        else:
-            return (0, ok[1])
-
-    def __find(self, number):
-        position = self.position[number]
-        x = -1
-        y = -1
-        while position != []:
-            r_position = random.choice(position)   #r=random
-            change_ok = self.__check(r_position[0], r_position[1], number)
-            if change_ok[0] == 3 or change_ok[0] == 4:
-                x, y = r_position
-                position.remove(r_position)
-                break
-            position.remove(r_position)
-        return (x, y)
-
-    def __exchange(self, delete, become):
-        """當不同數字連在一起時，改成相同數字，並整合position"""
-        for l in range(self.yd):
-            while delete in self.ground[l]:
-                place = self.ground[l].index(delete)
-                self.ground[l].remove(delete)
-                self.ground[l].insert(place, become)
-        self.position[become] += self.position[delete]
-        # 有可能position先空，但還沒碰到別人，所以只能這裡刪
-        del self.position[delete]
-        self.Number.remove(delete)
-    
-    def create_random_maze(self):
-        """製作隨機迷宮"""
-        start = [self.position[i][0] for i in self.Number]
-        while True:
-            if self.position[1] == []:
-                break
-            else:
-                for list_n, number in enumerate(self.Number):
-                    x, y = start[list_n]
-                    change = self.__road(x, y, number)
-                    if change[0] == 1:
-                        if number == 1:
-                            self.__exchange(change[1], 1)
-                        else:
-                            self.__exchange(number, change[1])
-
-                for list_n, number in enumerate(self.Number):
-                    start[list_n] = self.__find(number)
-
-def create_list2(xd, yd):
-    A = [0] * (xd)
-    G = []
-    for i in range(yd):
-        G.append(A[:])
-    return G
-
-def create_in_out(maze_obj, ending, random_TF = True, construct_structs = None):
-    # 製作出入口
-    for number in range(1, ending + 2):
-        while True:
-            if random_TF:  #隨機選
-                x = random.randint(0, maze_obj.xd - 1)
-                y = random.randint(0, maze_obj.yd - 1)
-                pos = (x, y)
-                if pos in maze_obj.start:
-                    continue
-                if construct_structs:  #隨機放置結構
-                    struct_number = random.randint(0, len(construct_structs) - 1)
-            else:  #手動選
-                i = 1
-                try:
-                    if i == 1:
-                        x, y = eval(input("%d 號出入口，座標 x, y :" % number))
-                        pos = (int(x), int(y))
-                        i += 1
-                    if i == 2 and construct_structs:  # 放置結構
-                        struct_number = eval(input("%d 號出入口，放置結構的編號 :" % number))
-                except ValueError:
-                    print("資料型態錯誤，請重新輸入")
-                    continue
-                if (pos[0] < 0) or (pos[1] < 0) or (pos[0] >= maze_obj.xd) or (pos[1] >= maze_obj.yd):
-                    print("座標超出範圍，請重新輸入")
-                    continue
-                if pos in maze_obj.start:
-                    print("座標重複，請重新輸入")
-                    continue
-            maze_obj.start.append(pos)
-            if construct_structs:
-                maze_obj.add_struct(x, y, construct_structs[struct_number], True)
-            else:
-                maze_obj.ground[y][x] = number
-            break
-    if not construct_structs:
-        maze_obj.auto_setting()
-        
 
 #畫迷宮
-def block(distance):
-    turtle.pendown()
-    turtle.begin_fill()
-    for h in range(4):
-        turtle.forward(distance)
-        turtle.left(90)
-    turtle.end_fill()
-    turtle.penup()
-    turtle.forward(distance)
+class show_maze():
+    distance = 20
+    pointer_size = 12
+    pointer_padding = (distance - pointer_size) / 2
+    flag_style = (
+        (pointer_padding + 1, pointer_padding + 1 + pointer_size), (pointer_padding + 1 + pointer_size, pointer_padding + 1 + pointer_size), 
+        (pointer_padding + 1 + pointer_size, pointer_padding + 1 + pointer_size - 2), (pointer_padding + 1 + pointer_size / 2 + 1, pointer_padding + 1 + pointer_size - 2), 
+        (pointer_padding + 1 + pointer_size / 2 + 1, pointer_padding + 1 + pointer_size - 4), (pointer_padding + 1 + pointer_size, pointer_padding + 1 + pointer_size - 8), 
+        (pointer_padding + 1 + pointer_size / 2 + 1, pointer_padding + 1), (pointer_padding + 1 + pointer_size / 2 - 1, pointer_padding + 1), 
+        (pointer_padding + 1 + pointer_size / 2 - 1, pointer_padding + 1 + pointer_size - 2), (pointer_padding + 1, pointer_padding + 1 + pointer_size - 2)
+    )
+    entrance_color = "lightgreen"
+    exit_color = "red"
+    wall_color = "black"
+    road_color = "white"
+    background_color = "whitesmoke"
+    frame_width = 4
+    pos_O = (frame_width / 2, frame_width / 2)
 
-def changeline(xd, distance):
-    turtle.penup()
-    turtle.right(180)
-    turtle.forward(xd * distance)
-    turtle.right(90)
-    turtle.forward(distance)
-    turtle.right(90)
-
-def draw(maze_obj, distance):
-    x_side = maze_obj.xd * distance
-    y_side = maze_obj.yd * distance
-    #畫出入口
-    turtle.penup()
-    for i in range(len(maze_obj.start)):
-        turtle.setposition(-1 * x_side / 2 + maze_obj.start[i][0] * distance + 1, -1 * y_side / 2 + maze_obj.start[i][1] * distance + 1)
-        if i == 0:
-            turtle.color(0, 1, 0)
-        else:
-            turtle.color(1, 0, 0)
-        block(distance - 2)
+    max_tag_number = 0
+    @classmethod
+    def __return_new_tag(cls):
+        cls.max_tag_number += 1
+        return f"{cls.max_tag_number} canva"
     
-    #畫路
-    turtle.color(0, 0, 0)
-    turtle.setposition(-1 * x_side / 2, -1 * y_side / 2)
-    for y in range(maze_obj.yd):
-        for x in range(maze_obj.xd):
-            if maze_obj.ground[y][x] <= 0:
-                block(distance)
-                # maze_obj.ground[y][x] = 0
+    def __init__(self, canva, maze_obj):
+        self.tag = self.__return_new_tag()
+        self.start = maze_obj.start
+        self.ground_data = maze_obj.ground
+        self.ground_xd = maze_obj.xd
+        self.ground_yd = maze_obj.yd
+        self.ground_x = self.ground_y = 0
+        self.canva = canva
+        self.canva_x, self.canva_y = self.pos_O
+        self.x_side = self.ground_xd * self.distance
+        self.y_side = self.ground_yd * self.distance
+        self.trace_tags = set()
+        self.frame_store = None
+        self.blocks_store = []
+        for i in range(self.ground_yd):
+            self.blocks_store.append([None] * self.ground_xd)
+    
+    def delete(self):
+        self.canva.delete(self.tag)
+        self.canva.update()
+        self.trace_tags.clear()
+        self.blocks_store.clear()
+
+    # 繪製
+    def draw(self):
+        #畫出入口
+        self.ground_x, self.ground_y = self.start[0]
+        self.canva_x, self.canva_y = self.pos_O[0] + self.ground_x * self.distance, self.pos_O[1] + self.ground_y * self.distance
+        self.__block(self.entrance_color)
+        for self.ground_x, self.ground_y in self.start[1:]:
+            self.canva_x, self.canva_y = self.pos_O[0] + self.ground_x * self.distance, self.pos_O[1] + self.ground_y * self.distance
+            self.__block(self.exit_color)
+        
+        #畫路
+        self.canva_y = self.pos_O[1]
+        for self.ground_y in range(self.ground_yd):
+            self.canva_x = self.pos_O[0]
+            for self.ground_x in range(self.ground_xd):
+                if self.ground_data[self.ground_y][self.ground_x] <= 0:
+                    self.__block(self.wall_color)
+                    self.canva_x += self.distance
+                else:
+                    self.canva_x += self.distance
+            self.canva_y += self.distance
+        
+        #畫框
+        self.canva.config(scrollregion=(0, 0, self.x_side + self.pos_O[0] * 2, self.y_side + self.pos_O[1] * 2), bg=self.background_color)
+        self.frame_store = self.canva.create_rectangle(self.pos_O[0], self.pos_O[1], self.x_side + self.pos_O[0], self.y_side + self.pos_O[1], width=self.frame_width, tag=(self.tag, ))
+
+        # pointer
+        self.pointer_gx, self.pointer_gy = self.start[0]
+        self.canva_x, self.canva_y = self.pos_O[0] + self.pointer_gx * self.distance, self.pos_O[1] + self.pointer_gy * self.distance
+        self.pointer = self.canva.create_oval(
+            self.canva_x + self.pointer_padding, self.canva_y + self.pointer_padding, 
+            self.canva_x + self.pointer_size + self.pointer_padding, self.canva_y + self.pointer_size + self.pointer_padding, 
+            fill="deepskyblue", outline="black", width=2, tag=(self.tag, )
+        )
+        self.pointer_moving_TF = False
+
+        # flag
+        self.flag = None
+        self.flag_gx = self.flag_gy = -1
+
+    def __block(self, color):
+        self.blocks_store[self.ground_y][self.ground_x] = self.canva.create_rectangle(
+            self.canva_x, self.canva_y, self.canva_x + self.distance, self.canva_y + self.distance, 
+            fill=color, outline=color, width=0, tag=(self.tag, )
+        )
+    
+    # 顯示
+    def show(self):
+        self.canva.itemconfigure(self.tag, state="normal")
+
+    # 隱藏
+    def hide(self):
+        self.canva.itemconfigure(self.tag, state="hidden")
+
+    # control pointer
+    def pointer_move(self, delta_gpos):
+        if self.ground_data[self.pointer_gy + delta_gpos[1]][self.pointer_gx + delta_gpos[0]] > 0:
+            self.pointer_moving_TF = True
+            step = self.distance / 4
+            x_move = delta_gpos[0] * step
+            y_move = delta_gpos[1] * step
+            if x_move:  # right or left  =>  j
+                trace_tag = f"j {self.pointer_gy} {self.pointer_gx if (x_move > 0) else self.pointer_gx - 1}"  # x_move > 0  =>  right
+            else:  # up or down  =>  i
+                trace_tag = f"i {self.pointer_gx} {self.pointer_gy if (y_move > 0) else self.pointer_gy - 1}"  # y_move < 0  =>  down
+            if trace_tag not in self.trace_tags:
+                self.trace_tags.add(trace_tag)
+                trace_TF = True
             else:
-                turtle.forward(distance)
-        changeline(maze_obj.xd, distance)
+                trace_TF = False
+            
+            for i in range(4):
+                if trace_TF:
+                    pointer_pos = self.canva.coords(self.pointer)
+                    pointer_center = ((pointer_pos[0] + pointer_pos[2]) / 2, (pointer_pos[1] + pointer_pos[3]) / 2)
+                    self.canva.create_line(
+                        pointer_center[0], pointer_center[1], pointer_center[0] + x_move, pointer_center[1] + y_move, 
+                        fill="deepskyblue", width=self.pointer_size, capstyle="round", tag=(trace_tag, self.tag)
+                    )
+                    self.canva.tag_raise(self.pointer)
+                    if self.flag: self.canva.tag_raise(self.flag)
+                self.canva.move(self.pointer, x_move, y_move)
+                self.canva.update()
+                time.sleep(0.02 + i * 0.01)
+            self.pointer_gx += delta_gpos[0]
+            self.pointer_gy += delta_gpos[1]
+            self.pointer_moving_TF = False
     
-    #畫框
-    turtle.pendown()
-    for i in range(2):
-        turtle.forward(x_side)
-        turtle.right(90)
-        turtle.forward(y_side)
-        turtle.right(90)
-    turtle.penup()
+    def place_flag(self, gx, gy):
+        x = gx * self.distance
+        y = gy * self.distance
+        self.flag = self.canva.create_polygon(
+            self.flag_style[0][0] + x, self.flag_style[0][1] + y, self.flag_style[1][0] + x, self.flag_style[1][1] + y, 
+            self.flag_style[2][0] + x, self.flag_style[2][1] + y, self.flag_style[3][0] + x, self.flag_style[3][1] + y, 
+            self.flag_style[4][0] + x, self.flag_style[4][1] + y, self.flag_style[5][0] + x, self.flag_style[5][1] + y, 
+            self.flag_style[6][0] + x, self.flag_style[6][1] + y, self.flag_style[7][0] + x, self.flag_style[7][1] + y, 
+            self.flag_style[8][0] + x, self.flag_style[8][1] + y, self.flag_style[9][0] + x, self.flag_style[9][1] + y, 
+            fill="gold", outline="black", tag=(self.tag, )
+        )
+        self.canva.update()
+        self.flag_gx = gx
+        self.flag_gy = gy
+    
+    def remove_flag(self):
+        self.canva.delete(self.flag)
+        self.canva.update()
+        self.flag_gx = self.flag_gy = -1
+    
+    def pointer_flag_same_pos_TF(self):
+        if (self.pointer_gx, self.pointer_gy) == (self.flag_gx, self.flag_gy):
+            return True
+        else:
+            return False
+    
+    def __pointer_go_to_pos(self, gx, gy):
+        self.canva.move(self.pointer, (gx - self.pointer_gx) * self.distance, (gy - self.pointer_gy) * self.distance)
+        self.canva.update()
+        self.pointer_gx = gx
+        self.pointer_gy = gy
 
-#########################################################
-i = 1
-while True:
-    try:
-        if i == 1:
-            xd = int(input("迷宮長度(x軸)："))   #迷宮大小(x軸)   185
+    def pointer_go_to_flag_pos(self):
+        self.__pointer_go_to_pos(self.flag_gx, self.flag_gy)
+    
+    def pointer_go_to_pos(self, gx, gy):
+        if self.ground_data[gy][gx] > 0:
+            self.__pointer_go_to_pos(gx, gy)
+
+
+class output_maze():
+    def output_as_photo():
+        pass
+    
+    def output_as_list():
+        #確定起終點都是1，如果不是，則刪掉
+
+        #把迷宮上不是1的部分都刪掉
+        for y in range(maze_obj.yd):
+            for x in range(maze_obj.xd):
+                if maze_obj.ground[y][x] != 1:
+                    maze_obj.ground[y][x] = 0
+
+
+#GUI
+class GUI():
+    class struct_edit_section():
+        padding_x = 3
+        padding_y = 1
+        def __init__(self, struct_name, container, root, new_TF = False):
+            self.name = struct_name
+            self.container = container
+            self.root = root
+            self.struct_right_button_mode = 0   # 0=刪除結構, 1=取消編輯
+            self.struct_construct_button_mode = 0   # 0=未選, 1=選取, 2=選擇放置位置
+            self.new_name = tk.StringVar()
+            self.new_name.set("未命名")
+            self.frame = tk.Frame(self.container)
+            self.struct_right_button = tk.Button(self.frame, width=6, height=1, text="刪除", font="微軟正黑體 15", bg="crimson", command=self.__struct_right_btn)
+            self.struct_construct_button = tk.Button(self.frame, width=6, height=1, text="未放置", font="微軟正黑體 15", bg="whitesmoke", command=self.__struct_construct_btn)
+            self.rename_entry = tk.Entry(self.frame, width=20, relief="solid", font="微軟正黑體 15", textvariable=self.new_name)
+
+            if new_TF:   # self.name = None
+                self.struct_left_button_mode = 2   # 0=無, 1=檢視模式, 2=編輯模式
+                self.struct_left_button = tk.Button(self.frame, width=12, height=1, text="未命名", font="微軟正黑體 15", bg="limegreen", command=self.__struct_left_btn)
+                self.struct_right_button.grid(row=0, column=1, padx=self.padding_x, pady=self.padding_y)
+            else:
+                self.struct_left_button_mode = 0   # 0=無, 1=檢視模式, 2=編輯模式
+                self.struct_left_button = tk.Button(self.frame, width=12, height=1, text=self.name, font="微軟正黑體 15", bg="whitesmoke", command=self.__struct_left_btn)
+                self.struct_construct_button.grid(row=0, column=1, padx=self.padding_x, pady=self.padding_y)
+            
+            self.struct_left_button.grid(row=0, column=0, padx=self.padding_x)
+        
+        def quit_editing(self):
+            if self.struct_left_button_mode:
+                self.__left_mode_0()
+                if self.struct_right_button_mode == 1:
+                    self.__right_mode_1()
+            elif self.struct_construct_button_mode == 2:
+                self.__construct_mode_0()
+        
+        # 調整模式與外觀
+        def __left_mode_0(self):   # 轉成"無"。如果為"手動放置結構"，則隱藏放置座標
+            self.struct_left_button_mode = 0
+            self.struct_left_button.config(bg="whitesmoke")
+            self.struct_right_button.grid_remove()
+            self.struct_construct_button.grid(row=0, column=1, padx=self.padding_x, pady=self.padding_y)
+            # if self.struct_construct_button_mode == 2:
+            #     self.__construct_mode_0()
+            self.root.mouse_click_mode = 0   # 0=無
+            if self.root.struct_pos.get() == "manual":
+                # 隱藏放置座標
+                pass
+        
+        def __left_mode_1(self):   # 轉成"檢視模式"。如果為"手動放置結構"，則顯示放置座標
+            if self.struct_left_button_mode != 2:
+                if self.struct_construct_button_mode == 2:
+                    self.__construct_mode_0()
+                else:
+                    self.root.editing(self.name)
+                self.struct_construct_button.grid_remove()
+                self.struct_right_button.grid(row=0, column=1, padx=self.padding_x, pady=self.padding_y)
+                self.mouse_click_mode = 2   # 2=編輯結構
+            self.struct_left_button_mode = 1
+            self.struct_left_button.config(bg="gold")
+            self.__right_mode_0()
+            if self.root.struct_pos.get() == "manual":
+                # 顯示放置座標
+                pass
+        
+        def __left_mode_2(self):   # 轉成"編輯模式"。如果為"手動放置結構"，則隱藏放置座標
+            if self.struct_left_button_mode != 1:
+                self.root.editing(self.name)
+                self.struct_construct_button.grid_remove()
+                self.struct_right_button.grid(row=0, column=1, padx=self.padding_x, pady=self.padding_y)
+                self.mouse_click_mode = 2   # 2=編輯結構
+            self.struct_left_button_mode = 2
+            self.struct_left_button.config(bg="limegreen")
+            self.__right_mode_1()
+            if self.root.struct_pos.get() == "manual":
+                # 隱藏放置座標
+                pass
+        
+
+        def __right_mode_0(self):   # 刪除結構
+            self.struct_right_button.config(text="刪除")
+        
+        def __right_mode_1(self):   # 取消編輯
+            # 刪除原先製作的東西  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+            self.struct_right_button_mode = 0
+            self.struct_right_button.config(text="取消")
+        
+
+        def __construct_mode_0(self):   # 未放置
+            self.struct_construct_button_mode = 0
+            self.struct_construct_button.config(bg="whitesmoke", text="未放置")
+            # self.root.mouse_click_mode = 0   # 0=無
+        
+        def __construct_mode_1(self):   # 已放置
+            self.struct_construct_button_mode = 1
+            self.struct_construct_button.config(bg="gold", text="已放置")
+            self.root.mouse_click_mode = 0   # 0=無
+        
+        def __construct_mode_2(self):   # 選擇放置位置 (選取中)
+            self.root.editing(self.name)   # 取得編輯權
+            self.struct_construct_button_mode = 2
+            self.struct_construct_button.config(bg="lightskyblue", text="選取中")
+            self.root.mouse_click_mode = 1   # 1=選起終點位置or選結構位置
+            pass
+
+
+        def __struct_left_btn(self):          
+            if self.struct_left_button_mode == 0:   # 0=無 => 轉成"檢視模式"。如果為"手動放置結構"，則顯示放置座標
+                self.__left_mode_1()
+            elif self.struct_left_button_mode == 1:   # 1=檢視模式 => 轉成"無"。如果為"手動放置結構"，則隱藏放置座標
+                self.__left_mode_0()
+                self.root.editing_struct_name = None
+                pass
+            elif self.struct_left_button_mode == 2:   # 2=編輯模式 => 轉成"檢視模式"，儲存編輯後的結構。如果為"手動放置結構"，則顯示放置座標
+                self.__left_mode_1()
+                pass
+        
+        def delete(self):
+            self.frame.destroy()
+            self.struct_left_button.destroy()
+            self.struct_right_button.destroy()
+            self.struct_construct_button.destroy()
+            self.root.editing_struct_name = None
+
+        def __struct_right_btn(self):
+            if self.struct_right_button_mode == 0:   # 0=刪除結構
+                self.delete()
+                if self.name == None:
+                    self.root.add_struct_button.grid(row=len(self.root.construct_structs), pady=1)
+                    del self.root.control_struct_new_section
+                    self.root.control_struct_new_section = None   # ???????????????
+                else:
+                    del self.root.control_struct_edit_sections[self.name]
+            elif self.struct_right_button_mode == 1:   # 1=取消編輯
+                self.__left_mode_1()
+                pass
+        
+        def __struct_construct_btn(self):
+            if self.struct_construct_button_mode == 0:   # 0=未放置 => 轉成"已放置"or"選擇放置位置"
+                if self.root.struct_pos.get() == "start":
+                    self.__construct_mode_1()
+                elif self.root.struct_pos.get() == "manual":
+                    self.__construct_mode_2()
+                    pass
+            elif self.struct_construct_button_mode == 1:   # 1=已放置 => 轉成"未放置"，取消放置
+                self.__construct_mode_0()
+                """# 如果別人的left = 1，有可能不能編輯，因為mouse_click_mode = 0  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   解決"""
+            elif self.struct_construct_button_mode == 2:   # 2=選擇放置位置 => 轉成"未放置"
+                self.__construct_mode_0()
+                self.root.editing_struct_name = None
+                pass
+    
+    padding_x = 5
+    padding_y = 5
+    canva_width = 760
+    canva_height = 760
+    auto_scroll_trigger_max = 10
+
+    def __init__(self, title):
+        self.main_window = tk.Tk()
+        self.main_window.title(title)
+        self.window_xd = self.main_window.winfo_width()
+        self.window_yd = self.main_window.winfo_height()
+
+        self.__setting()
+        self.__struct_prepare()
+    
+    def load(self):
+        self.__create_control_frame()
+        self.__create_canva_frame()
+        self.__show_control_frame()
+        self.__show_canva_frame()
+        self.__event_bind()
+    
+    def __event_bind(self):
+        self.mouse_x, self.mouse_y = None, None
+        self.mouse_cx, self.mouse_cy = None, None
+        self.flag_placed_TF = False
+        # self.canva.bind("<Motion>", self.__get_mouse_pos)
+        self.canva.bind("<B2-Motion>", self.__drag_mouse_2)  # 按住中鍵
+        self.canva.bind("<Button-1>", self.__click_mouse_1)
+        self.canva.bind("<Button-2>", self.__click_mouse_2)  # 中鍵
+        self.canva.bind("<Button-3>", self.__click_mouse_3)  # 右鍵
+        # control pointer & flag
+        self.canva.bind_all("<Key-Up>", self.__control_pointer)
+        self.canva.bind_all("<Key-Left>", self.__control_pointer)
+        self.canva.bind_all("<Key-Down>", self.__control_pointer)
+        self.canva.bind_all("<Key-Right>", self.__control_pointer)
+        self.canva.bind_all("<KeyPress-w>", self.__control_pointer)
+        self.canva.bind_all("<KeyPress-a>", self.__control_pointer)
+        self.canva.bind_all("<KeyPress-s>", self.__control_pointer)
+        self.canva.bind_all("<KeyPress-d>", self.__control_pointer)
+        self.canva.bind_all("<KeyPress-f>", self.__set_flag)  # flag
+        self.canva.bind_all("<KeyPress-r>", self.__back_to_flag)  # tp flag
+        # move pointer (飄移)
+        self.canva.bind_all("<KeyPress-g>", self.__back_to_flag)
+        self.canva.bind_all("<KeyPress-x>", self.__back_to_flag)
+        self.canva.bind_all("<KeyPress-y>", self.__back_to_flag)
+        
+        self.exit_entry.bind_class("Entry", "<Return>", self.__entry_unfocus)
+    
+    def __setting(self):
+        self.ground = None
+        self.GUI_show_ground = None
+        self.mouse_click_mode = 0   # 0=無, 1=選起終點位置or選結構位置, 2=編輯結構
+        self.struct_TF = tk.BooleanVar()
+        self.struct_TF.set(False)
+        self.struct_pos = tk.StringVar()
+        self.struct_pos.set("start")
+        self.random_TF = tk.BooleanVar()
+        self.random_TF.set(True)
+
+    def __struct_prepare(self):
+        A_55 = [[-1, -1,  1, -1, -1], 
+                [-1,  1,  1,  1, -1], 
+                [ 1,  1, -1,  1,  1], 
+                [-1,  1,  1,  1, -1], 
+                [-1, -1,  1, -1, -1]]
+        self.construct_structs = {"sample" : maze(copy.deepcopy(A_55), [(1, 1)])}
+        self.control_struct_edit_sections = dict()
+        self.editing_struct_name = None
+        self.control_struct_new_section = None
+        
+    def add_struct(self, name, struct):
+        self.construct_structs[name] = struct
+
+    def execute(self):
+        self.main_window.mainloop()
+    
+    def __create_control_frame(self):
+        self.control_frame = tk.Frame(self.main_window)
+
+        self.control_xd_frame = tk.Frame(self.control_frame)
+        self.xd_label = tk.Label(self.control_xd_frame, width=20, height=1, text="迷宮寬度(x軸)", font="微軟正黑體 15 bold", anchor="w")
+        self.xd_entry = tk.Entry(self.control_xd_frame, width=20, relief="solid", font="微軟正黑體 15")
+        self.xd_entry.insert(0, "32")
+
+        self.control_yd_frame = tk.Frame(self.control_frame)
+        self.yd_label = tk.Label(self.control_yd_frame, width=20, height=1, text="迷宮高度(y軸)", font="微軟正黑體 15 bold", anchor="w")
+        self.yd_entry = tk.Entry(self.control_yd_frame, width=20, relief="solid", font="微軟正黑體 15")
+        self.yd_entry.insert(0, "32")
+
+        self.control_exit_frame = tk.Frame(self.control_frame)
+        self.exit_label = tk.Label(self.control_exit_frame, width=20, height=1, text="出口數", font="微軟正黑體 15 bold", anchor="w")
+        self.exit_entry = tk.Entry(self.control_exit_frame, width=20, relief="solid", font="微軟正黑體 15")
+        self.exit_entry.insert(0, "1")
+
+        self.control_struct_frame = tk.Frame(self.control_frame)
+        self.struct_label = tk.Label(self.control_struct_frame, width=20, height=1, text="是否放置結構", font="微軟正黑體 15 bold", anchor="w")
+        self.struct_T_radiobutton = tk.Radiobutton(
+            self.control_struct_frame, width=9, height=1, variable=self.struct_TF, value=True, 
+            text="放置", indicatoron=0, font="微軟正黑體 15", bg="forestgreen", command=self.__struct_T_rbtn
+        )
+        self.struct_F_radiobutton = tk.Radiobutton(
+            self.control_struct_frame, width=9, height=1, variable=self.struct_TF, value=False, 
+            text="不放置", indicatoron=0, font="微軟正黑體 15", bg="crimson", state="disable", command=self.__struct_F_rbtn
+        )
+        self.control_struct_pos_frame = tk.Frame(self.control_frame)
+        self.struct_pos_label = tk.Label(self.control_struct_pos_frame, width=20, height=1, text="結構放置位置", font="微軟正黑體 15 bold", anchor="w")
+        self.struct_pos_start_radiobutton = tk.Radiobutton(
+            self.control_struct_pos_frame, width=9, height=1, variable=self.struct_pos, value="start", 
+            text="起終點", indicatoron=0, font="微軟正黑體 15", bg="forestgreen", state="disable", command=self.__struct_pos_start_rbtn
+        )
+        self.struct_pos_manual_radiobutton = tk.Radiobutton(
+            self.control_struct_pos_frame, width=9, height=1, variable=self.struct_pos, value="manual", 
+            text="手動", indicatoron=0, font="微軟正黑體 15", bg="crimson", command=self.__struct_pos_manual_rbtn
+        )
+        self.control_struct_choose_frame = tk.Frame(self.control_frame)
+        for struct_name in self.construct_structs.keys():
+            self.control_struct_edit_sections[struct_name] = self.struct_edit_section(struct_name, self.control_struct_choose_frame, self)
+        self.add_struct_button = tk.Button(self.control_struct_choose_frame, width=20, height=1, text="新增", font="微軟正黑體 15 bold", bg="lightyellow", command=self.__add_struct_btn)
+
+        self.control_random_frame = tk.Frame(self.control_frame)
+        self.random_label = tk.Label(self.control_random_frame, width=20, height=1, text="選擇起終點座標", font="微軟正黑體 15 bold", anchor="w")
+        self.random_T_radiobutton = tk.Radiobutton(
+            self.control_random_frame, width=9, height=1, variable=self.random_TF, value=True, 
+            text="自動", indicatoron=0, font="微軟正黑體 15", bg="limegreen", state="disable", command=self.__random_T_rbtn
+        )
+        self.random_F_radiobutton = tk.Radiobutton(
+            self.control_random_frame, width=9, height=1, variable=self.random_TF, value=False, 
+            text="手動", indicatoron=0, font="微軟正黑體 15", bg="orange", command=self.__random_F_rbtn
+        )
+        self.manual_label = tk.Label(self.control_frame, width=20, height=1, text="請點選起終點位置→", font="微軟正黑體", anchor="e")
+
+        self.create_maze_button = tk.Button(
+            self.control_frame, width=20, height=1, text="製作迷宮", font="微軟正黑體 15 bold", bg="limegreen", command=self.__create_maze_btn
+        )
+    
+    def __create_canva_frame(self):
+        self.canva_frame = tk.Frame(self.main_window)
+        self.scrollbar_y = tk.Scrollbar(self.canva_frame, orient="vertical")
+        
+        self.canva_inner_frame = tk.Frame(self.canva_frame, width=self.canva_width, height=self.canva_height + 20)
+        self.scrollbar_x = tk.Scrollbar(self.canva_inner_frame, orient="horizontal")
+        self.canva = tk.Canvas(self.canva_inner_frame, width=self.canva_width, height=self.canva_height, scrollregion=(0, 0, self.canva_width, self.canva_height), xscrollincrement=2, yscrollincrement=2)
+        
+        self.scrollbar_x.config(command=self.canva.xview)
+        self.scrollbar_y.config(command=self.canva.yview)
+        self.canva.config(xscrollcommand=self.scrollbar_x.set, yscrollcommand=self.scrollbar_y.set)
+    
+    def __show_control_frame(self):
+        self.control_frame.pack(side="left", fill="y", padx=self.padding_x, pady=self.padding_y)
+
+        self.control_xd_frame.grid(row=0, padx=self.padding_x, pady=self.padding_y)
+        self.xd_label.pack()
+        self.xd_entry.pack()
+
+        self.control_yd_frame.grid(row=1, padx=self.padding_x, pady=self.padding_y)
+        self.yd_label.pack()
+        self.yd_entry.pack()
+
+        self.control_exit_frame.grid(row=2, padx=self.padding_x, pady=self.padding_y)
+        self.exit_label.pack()
+        self.exit_entry.pack()
+
+        self.control_struct_frame.grid(row=3, padx=self.padding_x, pady=self.padding_y)
+        self.struct_label.grid(row=0, columnspan=2)
+        self.struct_T_radiobutton.grid(row=1, column=0)
+        self.struct_F_radiobutton.grid(row=1, column=1)
+
+        # control_struct_pos_frame row=4
+        self.struct_pos_label.grid(row=0, columnspan=2)
+        self.struct_pos_start_radiobutton.grid(row=1, column=0)
+        self.struct_pos_manual_radiobutton.grid(row=1, column=1)
+
+        # control_struct_choose_frame row=5
+        for i, struct_name in enumerate(list(self.construct_structs.keys())):
+            self.control_struct_edit_sections[struct_name].frame.grid(row=i, pady=2)
+        self.add_struct_button.grid(row=i+1, pady=1)
+
+        self.control_random_frame.grid(row=6, padx=self.padding_x, pady=self.padding_y)
+        self.random_label.grid(row=0, columnspan=2)
+        self.random_T_radiobutton.grid(row=1, column=0)
+        self.random_F_radiobutton.grid(row=1, column=1)
+
+        # manual_label row=7
+
+        self.create_maze_button.grid(row=8, columnspan=2, padx=self.padding_x, pady=self.padding_y)
+
+    def __show_canva_frame(self):
+        self.canva_frame.pack(side="right", padx=self.padding_x, pady=self.padding_y, fill="both")
+        self.canva_inner_frame.pack(side="left", fill="both")
+        self.canva.pack(side="top", fill="x")
+    
+    def __change_show_ground(self, to):
+        # 改變畫布顯示的東西
+        pass
+    
+    def __show_hide_scrollbar(self):
+        # 是否顯示scrollbar
+        if self.GUI_show_ground.x_side > self.canva_width:
+            self.scrollbar_x.pack(side="bottom", fill="x")
+        else:
+            self.scrollbar_x.pack_forget()
+        if self.GUI_show_ground.y_side > self.canva_height:
+            self.scrollbar_y.pack(side="right", fill="y")
+        else:
+            self.scrollbar_y.pack_forget()
+
+    # 編輯模式 canva
+    def __edit_ground(self):
+        xd = int(self.xd_entry.get())
+        yd = int(self.yd_entry.get())
+        for i in range(xd - 1):
+            self.canva.create_line(0, 0, )
+        pass
+
+    # 是否放置結構
+    def __struct_T_rbtn(self):
+        self.struct_T_radiobutton.config(state="disable")
+        self.struct_F_radiobutton.config(state="normal")
+        self.control_struct_pos_frame.grid(row=4, padx=self.padding_x, pady=self.padding_y)
+        self.control_struct_choose_frame.grid(row=5, padx=self.padding_x, pady=self.padding_y)
+
+    def __struct_F_rbtn(self):
+        self.struct_F_radiobutton.config(state="disable")
+        self.struct_T_radiobutton.config(state="normal")
+        self.control_struct_pos_frame.grid_remove()
+        self.control_struct_choose_frame.grid_remove()
+    
+    # 結構放置位置
+    def __struct_pos_start_rbtn(self):
+        self.struct_pos_start_radiobutton.config(state="disable")
+        self.struct_pos_manual_radiobutton.config(state="normal")
+        for section in self.control_struct_edit_sections.values():   # 還原
+            if section.struct_construct_button_mode == 2:
+                section.quit_editing()
+
+    def __struct_pos_manual_rbtn(self):
+        self.struct_pos_manual_radiobutton.config(state="disable")
+        self.struct_pos_start_radiobutton.config(state="normal")
+    
+    # 編輯、放置結構
+    def editing(self, name):  # 誰可以操作canva
+        if self.editing_struct_name != None and self.editing_struct_name != name:
+            self.control_struct_edit_sections[self.editing_struct_name].quit_editing()
+        self.editing_struct_name = name
+    
+    def __change_struct_name(self, original_name, new_name):
+        pass
+
+    # 新增結構
+    def __add_struct_btn(self):
+        self.add_struct_button.grid_remove()
+        self.editing(1)
+        self.mouse_click_mode = 2   # 2=編輯結構
+        self.control_struct_new_section = self.struct_edit_section(None, self.control_struct_choose_frame, self, True)
+        self.control_struct_new_section.frame.grid(row=len(self.construct_structs), pady=2)
+
+    # 選擇起終點座標
+    def __random_T_rbtn(self):
+        self.random_T_radiobutton.config(state="disable")
+        self.random_F_radiobutton.config(state="normal")
+        self.manual_label.grid_remove()
+        self.create_maze_button.config(bg="limegreen", state="normal")
+        del self.assign_exit
+
+    def __random_F_rbtn(self):
+        self.random_F_radiobutton.config(state="disable")
+        self.random_T_radiobutton.config(state="normal")
+        self.manual_label.grid(row=7, columnspan=2, padx=self.padding_x, pady=self.padding_y)
+        self.create_maze_button.config(bg="orange")
+        self.assign_exit = 0
+        try:
+            if int(self.exit_entry.get()) > self.assign_exit:
+                self.create_maze_button.config(state="disable")
+        except: pass
+
+    def __create_maze_btn(self):
+        try:
+            xd = int(self.xd_entry.get())   #迷宮大小(x軸)   185
             if xd <= 0:
-                print("資料值錯誤，請重新輸入")
-                continue
-            i += 1
-        if i == 2:
-            yd = int(input("迷宮寬度(y軸)："))   #迷宮大小(y軸)   95
+                raise Exception("資料值錯誤，請重新輸入")
+            yd = int(self.yd_entry.get())   #迷宮大小(y軸)   95
             if yd <= 0:
-                print("資料值錯誤，請重新輸入")
-                continue
+                raise Exception("資料值錯誤，請重新輸入")
             Max_ending = xd * yd - 1
-            i += 1
-        if i == 3:
-            distance = int(input("路的大小："))  #路的大小   8
-            if distance <= 0:
-                print("資料值錯誤，請重新輸入")
-                continue
-            i += 1
-        if i == 4:
-            ending = int(input("幾個出口："))    #出口數   20
+            ending = int(self.exit_entry.get())    #出口數   20
             if ending > Max_ending:
-                print("資料值大於%d，請重新輸入" % Max_ending)
-                continue
-            i += 1
-        if i == 5:
-            random_TF = bool(eval(input("是否隨機選擇起終點座標 (True、False)：")))  #隨機選擇起終點座標  True
-            del i
-    except ValueError:
-        print("資料型態錯誤，請重新輸入")
-    except Exception:
-        print("輸入錯誤，請重新輸入")
-    else:
-        break
-#########################################################
+                raise Exception("資料值大於%d，請重新輸入" % Max_ending)
+        except ValueError:
+            print("資料型態錯誤，請重新輸入")
+        except Exception as e:
+            print(str(e))
+        else:
+            if self.ground:
+                self.ground.delete()
+                del self.ground
+                self.GUI_show_ground.delete()
+                del self.GUI_show_ground
+            self.ground = maze(create_list2(xd, yd))
+            if self.struct_TF.get():
+                structs = dict()
+                for struct_name, section in self.control_struct_edit_sections.items():
+                    if section.struct_construct_button_mode == 1:
+                        structs[struct_name] = self.construct_structs[struct_name]
+                if not structs:
+                    struct_name = random.choice(list(self.construct_structs.keys()))  #隨機放置結構
+                    structs[struct_name] = self.construct_structs[struct_name]
+                create_in_out(self.ground, ending, self.random_TF.get(), structs)
+            else:
+                create_in_out(self.ground, ending, self.random_TF.get())
+            self.ground.create_random_maze()
+            print("製作迷宮時間：", time.process_time())
+            self.GUI_show_ground = show_maze(self.canva, self.ground)
+            self.GUI_show_ground.draw()
+            print("繪製迷宮時間：", time.process_time())
 
-turtle.tracer(0, 0)
+            # scrollbar show TF
+            self.__show_hide_scrollbar()
+            
+            self.__entry_unfocus(None)
 
-A_55 = [[-1, -1, -1, -1, -1], 
-        [-1, 1, 1, 1, -1], 
-        [-1, 1, -1, 1, 0], 
-        [-1, 1, 1, 1, -1], 
-        [-1, -1, -1, -1, -1]]
+    # event
+    def __mouse_pos_translate(self, event_x, event_y):
+        # screen的座標
+        self.mouse_x = event_x
+        self.mouse_y = event_y
+        # input screen的座標 return canva內的座標
+        self.mouse_cx = int(self.canva.canvasx(self.mouse_x))
+        self.mouse_cy = int(self.canva.canvasy(self.mouse_y))
+        if self.GUI_show_ground:  # ground 座標換算
+            self.mouse_gx = int((self.mouse_cx - self.GUI_show_ground.pos_O[0]) // self.GUI_show_ground.distance)
+            self.mouse_gy = int((self.mouse_cy - self.GUI_show_ground.pos_O[1]) // self.GUI_show_ground.distance)
 
-B_55 = [[1, 1, 1, 1, 1], 
+    def __get_mouse_pos(self, event):
+        self.__mouse_pos_translate(event.x, event.y)
+
+    def __drag_mouse_2(self, event):
+        # 用中鍵滑動canva
+        self.canva.scan_dragto(event.x, event.y, 1)
+    
+    def __click_mouse_1(self, event):
+        self.__mouse_pos_translate(event.x, event.y)
+        if self.mouse_click_mode == 0 and self.GUI_show_ground:
+            # 瞬間移動pointer位置
+            self.GUI_show_ground.pointer_go_to_pos(self.mouse_gx, self.mouse_gy)
+        elif self.mouse_click_mode == 1:
+            # 是終點就消除，不是就新增
+            pass
+        elif self.mouse_click_mode == 2:
+            # 是牆壁就消除，不是就新增
+            pass
+    
+    def __click_mouse_2(self, event):
+        # 用中鍵滑動canva
+        self.canva.scan_mark(event.x, event.y)
+    
+    def __click_mouse_3(self, event):
+        self.__mouse_pos_translate(event.x, event.y)
+        if self.mouse_click_mode == 2:
+            # 是終點就消除，不是就新增
+            pass
+    
+    def __control_pointer(self, event):
+        if self.mouse_click_mode == 0 and self.GUI_show_ground and not self.GUI_show_ground.pointer_moving_TF:
+            if event.keysym == "w" or event.keysym == "Up":
+                self.GUI_show_ground.pointer_move((0, -1))
+            elif event.keysym == "a" or event.keysym == "Left":
+                self.GUI_show_ground.pointer_move((-1, 0))
+            elif event.keysym == "s" or event.keysym == "Down":
+                self.GUI_show_ground.pointer_move((0, 1))
+            elif event.keysym == "d" or event.keysym == "Right":
+                self.GUI_show_ground.pointer_move((1, 0))
+    
+    def __set_flag(self, event):
+        if self.flag_placed_TF:
+            if self.GUI_show_ground.pointer_flag_same_pos_TF():
+                self.GUI_show_ground.remove_flag()
+                self.flag_placed_TF = False
+            else:
+                self.GUI_show_ground.remove_flag()
+                self.GUI_show_ground.place_flag(self.GUI_show_ground.pointer_gx, self.GUI_show_ground.pointer_gy)
+        else:
+            self.GUI_show_ground.place_flag(self.GUI_show_ground.pointer_gx, self.GUI_show_ground.pointer_gy)
+            self.flag_placed_TF = True
+
+    def __back_to_flag(self, event):
+        if self.flag_placed_TF:
+            self.GUI_show_ground.pointer_go_to_flag_pos()
+    
+    def __entry_unfocus(self, event):
+        self.main_window.focus()
+    
+
+random_maze = GUI("random maze")
+
+
+B_55 = [[ 1,  1,  1,  1,  1], 
         [-1, -1, -1, -1, -1], 
-        [2, 2, 2, -1, 3], 
-        [2, -1, -1, -1, 3], 
-        [2, 2, 2, 3, 3]]
+        [ 2,  2,  2, -1,  3], 
+        [ 2, -1, -1, -1,  3], 
+        [ 2,  2,  2,  3,  3]]
 
-A_77 = [[-1, -1, -1, 0, -1, -1, -1], 
-        [-1, 1, 1, 1, 1, 1, -1], 
-        [-1, 1, -1, -1, -1, 1, -1], 
-        [-1, 1, -1, -1, -1, 1, 0], 
-        [-1, 1, -1, -1, -1, 1, -1], 
-        [-1, 1, 1, 1, 1, 1, -1], 
-        [-1, -1, -1, -1, -1, -1, -1]]
+A_77 = [[-1, -1, -1,  1, -1, -1, -1], 
+        [-1,  1,  1,  1,  1,  1, -1], 
+        [-1,  1, -1, -1, -1,  1, -1], 
+        [ 1,  1, -1, -1, -1,  1,  1], 
+        [-1,  1, -1, -1, -1,  1, -1], 
+        [-1,  1,  1,  1,  1,  1, -1], 
+        [-1, -1, -1,  1, -1, -1, -1]]
 
+random_maze.add_struct("B_55", maze(copy.deepcopy(B_55)[::-1], [(0, 0)]))
+random_maze.add_struct("A_77", maze(copy.deepcopy(A_77), [(1, 1)]))
 
-construct_structs = [maze(copy.deepcopy(A_55), [(1, 1)]), maze(copy.deepcopy(B_55)[::-1], [(0, 0)]), maze(copy.deepcopy(A_77), [(1, 1)])]
-
-ground = maze(create_list2(xd, yd))
-create_in_out(ground, ending, random_TF, construct_structs)
-# create_in_out(ground, ending, random_TF)
-
-ground.create_random_maze()
-
-print("製作迷宮時間：", time.process_time())
-
-draw(ground, distance)
-
-print("繪製迷宮時間：", time.process_time())
-turtle.done()
+random_maze.load()
+random_maze.execute()
 
