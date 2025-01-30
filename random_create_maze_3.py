@@ -1,54 +1,84 @@
 # 造迷宮
 # tree
-from itertools import count as itertools__count
+from itertools import count as itertools__count  # generate new branch_number
+from itertools import deque  # store positions which have not been checked
 import random
 
 
 
-
-class __point():
+class __branch():
     """
-        組成支鏈(branch)的基本結構
+        支鏈(branch)，或者說路
         會直接放在迷宮的ground上
 
         Data:
-        有3個種類(type) [start(1), middle(0), end(-1)]
-    ----有指向性 [up(0), right(1), down(2), left(3)]，指向start----
-        紀錄上一個point(previous_point)，有點像link_list。沒有就是None
-        紀錄下一個point(next_point)，有點像link_list。沒有就是None
+        紀錄上一個branch(previous_branch)，有點像link_list。沒有就是None
+        紀錄下一個branch(next_branch)，有點像link_list。沒有就是None
         所在支鏈編號(branch_number)
     """
-
-    branch2io = dict()  # {branch_number : io_number}
-
-    def __init__(self, type_, previous_point, branch_number):
-        self.__type = type_  # 種類
-        self.__previous_point = previous_point  # 上一個point
-        self.__next_point = None  # 下一個point
-        self.__branch_number = branch_number  # 所在支鏈編號
+    def __init__(self, belong, previous_branch, branch_number):
+        self.__belong = belong  # 存在哪個maze物件
+        self.__previous_branch = previous_branch  # 上一個branch
+        self.__next_branch = None  # 下一個branch
+        self.branch_number = branch_number  # 所在支鏈編號
     
-    def set_next_point(self, next_point):
-        """ 紀錄下一個point """
-        self.__next_point = next_point
+    def set_next_branch(self, next_branch):
+        """ 紀錄下一個branch """
+        self.__next_branch = next_branch
 
-    # previous_point = property(lambda self: self.__previous_point)  # 上一個point
-    # next_point = property(lambda self: self.__next_point)  # 下一個point
-    branch_number = property(lambda self: self.__branch_number)  # 所在支鏈編號
-    io_number = property(lambda self: branch2io[self.__branch_number])  # point連接到的出入口編號
-
-    def branch_start(self):
-        """ 取得支鏈開頭的point """
-        if self.__previous_point != None:
-            return self.__previous_point.branch_start()
-        else:
-            return self
+    previous_branch = property(lambda self: self.__previous_branch if self.__previous_branch.branch_number == self.branch_number else None)  # 上一個branch
+    # next_branch = property(lambda self: self.__next_branch)  # 下一個branch
+    io_number = property(lambda self: self.__belong.branch2io[self.__branch_number])  # branch連接到的出入口編號
     
-    def branch_end(self):
-        """ 取得支鏈結尾的point """
-        if self.__next_point != None:
-            return self.__next_point.branch_end()
-        else:
-            return self
+
+class __node(__branch):
+    """
+        節點(node)，可能是岔路口or死路
+        branch的進階版
+        會在支鏈的尾
+        會直接放在迷宮的ground上
+
+        Data:
+        紀錄上一個node(previous_node)，有點像link_list。沒有就是None
+        紀錄上一個branch(previous_branch)，有點像link_list。沒有就是None
+        紀錄下一個node(next_node)，有點像link_list。沒有就是None。會有3個
+        紀錄下一個branch(next_branch)，有點像link_list。沒有就是None。會有3個
+        所在支鏈編號(branch_number)
+    """
+    def __init__(self, belong, previous_node, previous_branch, branch_number):
+        self.__belong = belong  # 存在哪個maze物件
+        self.__previous_node = previous_node  # 上一個node
+        self.__previous_branch = previous_branch  # 上一個branch
+        self.__next_node = list()  # 下一個node
+        self.__next_branch = list()  # 下一個branch
+        self.branch_number = branch_number  # 所在支鏈編號
+
+    def set_next_branch(self, next_branch):
+        """ 紀錄下一個branch """
+        self.__next_branch.append(next_branch)
+
+    def set_next_node(self, next_node):
+        """ 紀錄下一個node """
+        self.__next_node.append(next_node)
+    
+    
+    previous_node = property(lambda self: self.__previous_node)  # 上一個node
+    # next_node = property(lambda self: self.__next_node[:])  # 下一個node
+    # next_branch = property(lambda self: self.__next_branch[:])  # 下一個branch
+
+    # def branch_start(self):
+    #     """ 取得支鏈開頭的point """
+    #     if self.__previous_point != None:
+    #         return self.__previous_point.branch_start()
+    #     else:
+    #         return self
+    
+    # def branch_end(self):
+    #     """ 取得支鏈結尾的point """
+    #     if self.__next_point != None:
+    #         return self.__next_point.branch_end()
+    #     else:
+    #         return self
     
 
 class __branches():
@@ -64,10 +94,11 @@ class __branches():
     def __check(self, x, y, number, check_center_TF = True):
         """
             檢查周圍point的number，如果io_number同就"+1"，不同就"+10"
-            回傳：
-                (-1, ): 不能走
-                (count, ): 附近有幾個相同io_number的point
-                (count, io_number): 附近有幾個相同io_number的point + 10, 碰到的不同的io_number
+
+            Return:
+            (-1, ): 不能走
+            (count, ): 附近有幾個相同io_number的point
+            (count, io_number): 附近有幾個相同io_number的point + 10, 碰到的不同的io_number
         """
         if (x < self.__xd and x >= 0) and (y < self.__yd and y >= 0) and self.__ground[y][x].io_number >= 0:
            # 在範圍內                                                    # 檢查是否為-1
@@ -138,6 +169,8 @@ class maze():
         出入口(io)
         branch計數器(branch_counter)
     """
+    branch2io = dict()  # {branch_number : io_number}
+    
     def __init__(self, xd, yd, ground_generate = lambda x, y: 0):
         self.__xd = xd
         self.__yd = yd
