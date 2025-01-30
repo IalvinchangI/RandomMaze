@@ -3,7 +3,7 @@ import random
 import copy
 import tkinter as tk
 import time
-from random_create_maze import maze, create_list2, create_in_out
+from random_create_maze import maze, create_in_out
 
 
 
@@ -35,7 +35,7 @@ class show_maze():
     
     def __init__(self, canva, maze_obj):
         self.tag = self.__return_new_tag()
-        self.start = maze_obj.start
+        self.start = maze_obj.entrance
         self.ground_data = maze_obj.ground
         self.ground_xd = maze_obj.xd
         self.ground_yd = maze_obj.yd
@@ -417,7 +417,7 @@ class GUI():
                 [ 1,  1, -1,  1,  1], 
                 [-1,  1,  1,  1, -1], 
                 [-1, -1,  1, -1, -1]]
-        self.construct_structs = {"sample" : maze(copy.deepcopy(A_55), [(1, 1)])}
+        self.construct_structs = dict()#{"sample" : maze(copy.deepcopy(A_55), (1, 1))}
         self.control_struct_edit_sections = dict()
         self.editing_struct_name = None
         self.control_struct_new_section = None
@@ -525,6 +525,7 @@ class GUI():
         self.struct_pos_manual_radiobutton.grid(row=1, column=1)
 
         # control_struct_choose_frame row=5
+        i = 0  #
         for i, struct_name in enumerate(list(self.construct_structs.keys())):
             self.control_struct_edit_sections[struct_name].frame.grid(row=i, pady=2)
         self.add_struct_button.grid(row=i+1, pady=1)
@@ -649,7 +650,7 @@ class GUI():
                 del self.ground
                 self.GUI_show_ground.delete()
                 del self.GUI_show_ground
-            self.ground = maze(create_list2(xd, yd))
+            self.ground = maze(maze.create_list2(xd, yd))
             if self.struct_TF.get():
                 structs = dict()
                 for struct_name, section in self.control_struct_edit_sections.items():
@@ -761,8 +762,8 @@ A_77 = [[-1, -1, -1,  1, -1, -1, -1],
         [-1,  1,  1,  1,  1,  1, -1], 
         [-1, -1, -1,  1, -1, -1, -1]]
 
-random_maze.add_struct("B_55", maze(copy.deepcopy(B_55)[::-1], [(0, 0)]))
-random_maze.add_struct("A_77", maze(copy.deepcopy(A_77), [(1, 1)]))
+# random_maze.add_struct("B_55", maze(copy.deepcopy(B_55)[::-1], (0, 0)))
+# random_maze.add_struct("A_77", maze(copy.deepcopy(A_77), (1, 1)))
 
 random_maze.load()
 random_maze.execute()
