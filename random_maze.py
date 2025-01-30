@@ -1,3 +1,4 @@
+# 一路到底，多個終點的最終版
 import random
 import turtle
 import time
@@ -80,17 +81,18 @@ def road(x, y, number, ground, position):
         return (0, ok[1])
 
 def find(number, position):
-    change_ok = (0, -1)
     x = -1
     y = -1
-    while change_ok[0] != 3 and position != []:  #####################################
+    while position != []:  #####################################
         r_position = random.choice(position)   #r=random
         change_ok = check(r_position[0], r_position[1], number)
         if change_ok[0] == 3:
             x = r_position[0]
             y = r_position[1]
+            position.remove(r_position)
+            break
         position.remove(r_position)
-    return (x, y)
+    return (x, y, )
 
 def exchange(delete, become, ground):
     """當不同數字連在一起時，改成相同數字"""
@@ -121,7 +123,6 @@ def changeline(xd, distance):
     turtle.right(90)
     turtle.pendown()
 
-
 #########################################################
 i = 1
 while True:
@@ -137,6 +138,7 @@ while True:
             if yd <= 0:
                 print("資料值錯誤，請重新輸入")
                 continue
+            Max_ending = xd * yd - 1
             i += 1
         if i == 3:
             distance = int(input("路的大小："))  #路的大小   8
@@ -146,13 +148,16 @@ while True:
             i += 1
         if i == 4:
             ending = int(input("幾個出口："))    #出口數   20
+            if ending > Max_ending:
+                print("資料值大於%d，請重新輸入" % Max_ending)
+                continue
             i += 1
         if i == 5:
-            random_pos = bool(eval(input("是否隨機選擇起終點座標 (True、False)：")))  #隨機選擇起終點座標  True
+            random_TF = bool(eval(input("是否隨機選擇起終點座標 (True、False)：")))  #隨機選擇起終點座標  True
             del i
     except ValueError:
         print("資料型態錯誤，請重新輸入")
-    except NameError:
+    except Exception:
         print("輸入錯誤，請重新輸入")
     else:
         break
@@ -175,7 +180,7 @@ position = []
 
 for number in Number:
     while True:
-        if random_pos:  #隨機選
+        if random_TF:  #隨機選
             x = random.randint(0, xd - 1)
             y = random.randint(0, yd - 1)
             pos = (x, y)
@@ -223,7 +228,6 @@ while True:
         print("製作迷宮時間：", time.process_time())
         break
     else:
-        change = (0, -1)
         for number in Number:
             x = start[number - 1][0]
             y = start[number - 1][1]
@@ -248,7 +252,7 @@ while True:
 #樣式：方的
 for y in range(yd):
     for x in range(xd):
-        if ground[y][x] != 1:
+        if ground[y][x] == 0:
             block(distance)
             ground[y][x] = 0
         else:
@@ -267,4 +271,3 @@ turtle.penup()
 
 print("繪製迷宮時間：", time.process_time())
 turtle.done()
-
