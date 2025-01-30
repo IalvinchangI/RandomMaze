@@ -1,13 +1,23 @@
 import random
 import turtle
 
-#路的草稿
-def exchange(delete, become):
-    #當不同數字連在一起時，改成相同數字
-    for l in range(j + 1):
-        while delete in ground[l]:
-            place = ground[l].index(delete)
-            ground[l][place] = become
+
+def check(x, y):
+    count = 0
+    if (x <= size - 1 and x >= 0) and (y <= size - 1 and y >= 0):
+        if ground[y + 1][x] == 1:
+            count += 1
+        if ground[y][x + 1] == 1:
+            count += 1
+        if ground[y - 1][x] == 1:
+            count += 1
+        if ground[y][x - 1] == 1:
+            count += 1
+        if ground[y][x] == 1:
+            count += 1
+    return count
+
+
 
 #畫路
 def wall(distance):
@@ -29,114 +39,95 @@ def changeline(size, distance):
 
 
 ###################
-size = 60  #迷宮大小
+size = 10  #迷宮大小
 distance = 10  #路的大小
 ###################
 side = size * distance
 
-max_number = 1
 
-A = [-1] * size
+A = [0] * (size + 1)
 ground = []
-for i in range(size):
+for i in range(size + 1):
     ground.append(A[:])
 
+
+y = 0
+x = 0
+ground[y][x] = 1
+
+position = [(x, y)]
+
+
 turtle.speed(0)
+turtle.hideturtle()
 turtle.penup()
 turtle.setposition(-1 * side / 2, -1 * side / 2)
 
-#i=x軸, j=y軸
-#路的草稿
-for j in range(size):
-    i = random.randint(-1 * size, 0)  #每一行的起始點
-    for k in range(size):
-        if k == 0 and j == 0:
-            ground[0][0] = 1
-            i = 0
-            """
-            up = ground[j - 1][i]  #上項
-            before = ground[j][i - 1]  #前項
-            up_end = 1 in ground[j - 1][i + 1:]  #上項之後的項是否有1
-            """
-        else:
-            r = random.randint(-2, 5)   #r=random, 0=wall, 1=road
-            if r >= 1:            #road
-                if i != 0 and j == 0:  #首行(非排首)
-                    before = ground[j][i - 1]
-                    if before == 0:   #前項是否為零
-                        max_number += 1
-                        ground[0][i] = max_number
-                    else:
-                        ground[0][i] = before
-                        
-                elif (i == 0 or i == -1 * size) and j != 0:  #排首
-                    up = ground[j - 1][i]
-                    if up == 0:   #上項是否為零
-                        max_number += 1
-                        ground[j][i] = max_number
-                    else:
-                        ground[j][i] = up
+
+#turn = [go_up + 1, go_right + 1, go_up - 1, go_right - 1]  ###
+while position != []:
+    turn = [0, 1, 2, 3]
+    ok = 0
+    #print("---", i)
+    while ok != 1:
+        r = random.choice(turn)   #r=random
+        #print(">", r)
+        if r == 0:  #y + 1
+            ok = check(x, y + 1)
+            if ok == 1:
+                y += 1
+                ground[y][x] = 1
+                position.append((x, y))
+            else:
+                turn.remove(r)
+        elif r == 1:  #x + 1
+            ok = check(x + 1, y)
+            if ok == 1:
+                x += 1
+                ground[y][x] = 1
+                position.append((x, y))
+            else:
+                turn.remove(r)
+        elif r == 2:  #y - 1
+            ok = check(x, y - 1)
+            if ok == 1:
+                y -= 1
+                ground[y][x] = 1
+                position.append((x, y))
+            else:
+                turn.remove(r)
+        elif r == 3:  #x - 1
+            ok = check(x - 1, y)
+            if ok == 1:
+                x -= 1
+                ground[y][x] = 1
+                position.append((x, y))
+            else:
+                turn.remove(r)
                 
-                elif (i != 0 or i != -1 * size) and j != 0:  #非排首(非首行)
-                    if k == 0:  #是否為該排第一個填入的數字
-                        up = ground[j - 1][i]
-                        if up == 0:   #上項是否為零
-                            max_number += 1
-                            ground[j][i] = max_number
-                        else:
-                            ground[j][i] = up
-                    else:
-                        before = ground[j][i - 1]
-                        up = ground[j - 1][i]
-                        if before == 0 and up == 0:
-                            max_number += 1
-                            ground[j][i] = max_number
-                        elif before != 0:  #前項
-                            #當不同數字連在一起時，改成相同數字
-                            if up == 1 and before > 1:
-                                ground[j][i] = 1
-                                exchange(before, 1)
-                            elif up > 1 and before > 1 and before != up:
-                                ground[j][i] = up
-                                exchange(before, up)
-                            elif up > 1 and before == 1:
-                                ground[j][i] = 1
-                                exchange(up, 1)
-                            else:
-                                ground[j][i] = before
-                            
-                        elif up != 0:   #上項
-                            ground[j][i] = up
-                
-            else:              #wall
-                if (i == 0 or i == -1 * size) and j != 0:  #排首(非首行)
-                    up = ground[j - 1][i]
-                    up_end = 1 in ground[j - 1][i + 1:]
-                    if up == 1 and up_end == False:  #上項、上項之後的項
-                        ground[j][i] = 1
-                    else:
-                        ground[j][i] = 0
-                        
-                elif ((i > 0 and i < size - 1) or (i > -1 * size and i < -1)) and j != 0:  #(非首行)
-                    up = ground[j - 1][i]
-                    up_end = 1 in ground[j - 1][i + 1:]
-                    if up == 1 and up_end == False and (1 not in ground[j]):  #上項、上項之後的項，之前的項
-                        ground[j][i] = 1
-                    else:
-                        ground[j][i] = 0
-                    
-                elif (i == size - 1 or i == -1) and j != 0:  #排尾(非首行)
-                    up = ground[j - 1][i]
-                    if up == 1 and (1 not in ground[j]):  #上項、後項
-                        ground[j][i] = 1
-                    else:
-                        ground[j][i] = 0
-                        
-                else:  #j=0
-                    ground[0][i] = 0
-                """#"""
-        i += 1            
-    #print(ground)
+        #print(ok)
+        if turn == []:
+            change_ok = 0
+            while change_ok != 3 and position != []:
+                r_position = random.choice(position)   #r=random
+                change_ok = check(r_position[0], r_position[1])
+                if change_ok == 3:
+                    x = r_position[0]
+                    y = r_position[1]
+                    #print(r_position)
+                position.remove(r_position)
+            #print("break")
+            break
+        
+    if position == []:
+        print("all_break")
+        break
+
+"""
+for i in range(size, -1, -1):
+    print(ground[i])
+print(position)
+"""
 
 
 #畫路
@@ -179,7 +170,11 @@ for j in range(size):
     #print(ground[j])
 """#"""
 
+turtle.pendown()
+for i in range(4):
+    turtle.forward(side)
+    turtle.right(90)
 
-
+turtle.done()
 
 
