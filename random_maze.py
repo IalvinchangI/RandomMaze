@@ -7,8 +7,7 @@ def exchange(delete, become):
     for l in range(j + 1):
         while delete in ground[l]:
             place = ground[l].index(delete)
-            ground[l].remove(delete)
-            ground[l].insert(place, become)
+            ground[l][place] = become
 
 #畫路
 def wall(distance):
@@ -37,7 +36,7 @@ side = size * distance
 
 max_number = 1
 
-A = []
+A = [-1] * size
 ground = []
 for i in range(size):
     ground.append(A[:])
@@ -49,9 +48,11 @@ turtle.setposition(-1 * side / 2, -1 * side / 2)
 #i=x軸, j=y軸
 #路的草稿
 for j in range(size):
-    for i in range(size):
-        if i == 0 and j == 0:
-            ground[0].append(1)
+    i = random.randint(-1 * size, 0)  #每一行的起始點
+    for k in range(size):
+        if k == 0 and j == 0:
+            ground[0][0] = 1
+            i = 0
             """
             up = ground[j - 1][i]  #上項
             before = ground[j][i - 1]  #前項
@@ -60,73 +61,81 @@ for j in range(size):
         else:
             r = random.randint(-2, 5)   #r=random, 0=wall, 1=road
             if r >= 1:            #road
-                if i != 0 and j == 0:
+                if i != 0 and j == 0:  #首行(非排首)
                     before = ground[j][i - 1]
                     if before == 0:   #前項是否為零
                         max_number += 1
-                        ground[0].append(max_number)
+                        ground[0][i] = max_number
                     else:
-                        ground[0].append(before)
+                        ground[0][i] = before
                         
-                elif i == 0 and j != 0:
+                elif (i == 0 or i == -1 * size) and j != 0:  #排首
                     up = ground[j - 1][i]
                     if up == 0:   #上項是否為零
                         max_number += 1
-                        ground[j].append(max_number)
+                        ground[j][i] = max_number
                     else:
-                        ground[j].append(up)
+                        ground[j][i] = up
                 
-                elif i != 0 and j != 0:
-                    before = ground[j][i - 1]
-                    up = ground[j - 1][i]
-                    if before == 0 and up == 0:
-                        max_number += 1
-                        ground[j].append(max_number)
-                    elif before != 0:  #前項
-                        #當不同數字連在一起時，改成相同數字
-                        if up == 1 and before != 1:
-                            ground[j].append(1)
-                            exchange(before, 1)
-                        elif up > 1 and before != 1 and before != up:
-                            ground[j].append(up)
-                            exchange(before, up)
-                        elif up > 1 and before == 1:
-                            ground[j].append(1)
-                            exchange(up, 1)
+                elif (i != 0 or i != -1 * size) and j != 0:  #非排首(非首行)
+                    if k == 0:  #是否為該排第一個填入的數字
+                        up = ground[j - 1][i]
+                        if up == 0:   #上項是否為零
+                            max_number += 1
+                            ground[j][i] = max_number
                         else:
-                            ground[j].append(before)
-                        
-                    elif up != 0:   #上項
-                        ground[j].append(up)
+                            ground[j][i] = up
+                    else:
+                        before = ground[j][i - 1]
+                        up = ground[j - 1][i]
+                        if before == 0 and up == 0:
+                            max_number += 1
+                            ground[j][i] = max_number
+                        elif before != 0:  #前項
+                            #當不同數字連在一起時，改成相同數字
+                            if up == 1 and before > 1:
+                                ground[j][i] = 1
+                                exchange(before, 1)
+                            elif up > 1 and before > 1 and before != up:
+                                ground[j][i] = up
+                                exchange(before, up)
+                            elif up > 1 and before == 1:
+                                ground[j][i] = 1
+                                exchange(up, 1)
+                            else:
+                                ground[j][i] = before
+                            
+                        elif up != 0:   #上項
+                            ground[j][i] = up
                 
             else:              #wall
-                if i == 0 and j != 0:
+                if (i == 0 or i == -1 * size) and j != 0:  #排首(非首行)
                     up = ground[j - 1][i]
                     up_end = 1 in ground[j - 1][i + 1:]
                     if up == 1 and up_end == False:  #上項、上項之後的項
-                        ground[j].append(1)
+                        ground[j][i] = 1
                     else:
-                        ground[j].append(0)
+                        ground[j][i] = 0
                         
-                elif i > 0 and i < size - 1 and j != 0:
+                elif ((i > 0 and i < size - 1) or (i > -1 * size and i < -1)) and j != 0:  #(非首行)
                     up = ground[j - 1][i]
                     up_end = 1 in ground[j - 1][i + 1:]
                     if up == 1 and up_end == False and (1 not in ground[j]):  #上項、上項之後的項，之前的項
-                        ground[j].append(1)
+                        ground[j][i] = 1
                     else:
-                        ground[j].append(0)
+                        ground[j][i] = 0
                     
-                elif i == size - 1 and j != 0:
+                elif (i == size - 1 or i == -1) and j != 0:  #排尾(非首行)
                     up = ground[j - 1][i]
                     if up == 1 and (1 not in ground[j]):  #上項、後項
-                        ground[j].append(1)
+                        ground[j][i] = 1
                     else:
-                        ground[j].append(0)
+                        ground[j][i] = 0
                         
                 else:  #j=0
-                    ground[0].append(0)
+                    ground[0][i] = 0
                 """#"""
-                
+        i += 1            
     #print(ground)
 
 
